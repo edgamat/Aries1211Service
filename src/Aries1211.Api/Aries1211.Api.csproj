@@ -15,4 +15,10 @@
     <ProjectReference Include="..\Aries1211.Persistence\Aries1211.Persistence.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>
