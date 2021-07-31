@@ -13,61 +13,68 @@ namespace Aries1211.Api.Readings
     public class RecordingService : BackgroundService
     {
         private readonly IServiceProvider _serviceProvider;
+        private readonly ILogger<RecordingService> _logger;
 
         private const int PollingDelaySeconds = 5;
 
         public RecordingService(IServiceProvider serviceProvider)
         {
             _serviceProvider = serviceProvider;
+            _logger = _serviceProvider.GetRequiredService<ILogger<RecordingService>>();
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            var logger = _serviceProvider.GetRequiredService<ILogger<RecordingService>>();
+            _logger.LogInformation("Recording service is starting.");
+            stoppingToken.Register(() => _logger.LogInformation("Recording service is stopping."));
 
-            logger.LogInformation("Recording service is starting.");
-
-            stoppingToken.Register(() => logger.LogInformation("Recording service is stopping."));
-
-            using (var dbScope = _serviceProvider.CreateScope())
-            {
-                var context = dbScope.ServiceProvider.GetService<AriesContext>();
-                logger.LogInformation("Recording service is applying migrations to the database.");
-                try
-                {
-                    await context.Database.MigrateAsync(stoppingToken);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Recording service encountered an exception");
-                    throw;
-                }
-            }
-
-            logger.LogInformation("Recording service is ready.");
+            await ApplyPendingMigrationsAsync(stoppingToken);
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                using var scope = _serviceProvider.CreateScope();
-                try
-                {
-                    logger.LogDebug("Recording service is doing work.");
-
-                    var recorder = scope.ServiceProvider.GetService<ISensorRecorder>();
-
-                    await recorder.RecordReadingAsync(stoppingToken);
-                }
-                catch (OperationCanceledException ex)
-                {
-                    logger.LogWarning(ex, "Recording service encountered a timeout");
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Recording service encountered an exception");
-                }
+                await DoWorkAsync(stoppingToken);
 
                 await Task.Delay(TimeSpan.FromSeconds(PollingDelaySeconds), stoppingToken);
             }
+        }
+
+        private async Task DoWorkAsync(CancellationToken stoppingToken)
+        {
+            _logger.LogDebug("Recording service is doing work.");
+
+            using var scope = _serviceProvider.CreateScope();
+
+            try
+            {
+                var recorder = scope.ServiceProvider.GetService<ISensorRecorder>();
+
+                await recorder.RecordReadingAsync(stoppingToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Recording service encountered an exception.");
+            }
+        }
+
+        private async Task ApplyPendingMigrationsAsync(CancellationToken stoppingToken)
+        {
+            _logger.LogInformation("Recording service is applying migrations to the database.");
+
+            using var dbScope = _serviceProvider.CreateScope();
+
+            var context = dbScope.ServiceProvider.GetService<AriesContext>();
+
+            try
+            {
+                await context.Database.MigrateAsync(stoppingToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Recording service encountered an exception");
+                throw;
+            }
+
+            _logger.LogInformation("Recording service is ready.");
         }
     }
 }
