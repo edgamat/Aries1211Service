@@ -8,7 +8,7 @@ namespace UnitTests.Aries1211.Persistence
         [Fact]
         public void Test1()
         {
-
+            Console.WriteLine("BOOGA");
         }
     }
 }

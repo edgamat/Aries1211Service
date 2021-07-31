@@ -32,10 +32,19 @@ namespace Aries1211.Api
             services.AddScoped<ISensorAdapter, InMemorySensorAdapter>();
             services.AddScoped<ISensorRecorder, SensorRecorder>();
 
+            services.AddCors(options =>
+            {
+                options.AddDefaultPolicy(
+                    builder =>
+                    {
+                        builder.WithOrigins("https://localhost:4200", "http://www.localhost:4200");
+                    });
+            });
+
             services.AddControllers();
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = "Aries1211.Api", Version = "v1" });
+                c.SwaggerDoc("v1", new OpenApiInfo {Title = "Aries1211.Api", Version = "v1"});
             });
         }
 
@@ -52,6 +61,8 @@ namespace Aries1211.Api
             app.UseHttpsRedirection();
 
             app.UseRouting();
+
+            app.UseCors();
 
             app.UseAuthorization();
 
