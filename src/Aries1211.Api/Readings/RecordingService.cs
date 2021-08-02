@@ -30,6 +30,8 @@ namespace Aries1211.Api.Readings
 
             await ApplyPendingMigrationsAsync(stoppingToken);
 
+            _logger.LogInformation("Recording service is ready.");
+
             while (!stoppingToken.IsCancellationRequested)
             {
                 await DoWorkAsync(stoppingToken);
@@ -60,9 +62,9 @@ namespace Aries1211.Api.Readings
         {
             _logger.LogInformation("Recording service is applying migrations to the database.");
 
-            using var dbScope = _serviceProvider.CreateScope();
+            using var scope = _serviceProvider.CreateScope();
 
-            var context = dbScope.ServiceProvider.GetService<AriesContext>();
+            var context = scope.ServiceProvider.GetService<AriesContext>();
 
             try
             {
@@ -73,8 +75,6 @@ namespace Aries1211.Api.Readings
                 _logger.LogError(ex, "Recording service encountered an exception");
                 throw;
             }
-
-            _logger.LogInformation("Recording service is ready.");
         }
     }
 }
